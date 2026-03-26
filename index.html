@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mundial Hystericoach - Oficial</title>
+    <style>
+        :root {
+            --grass: #1b5e20;
+            --gold: #ffd700;
+            --white: #ffffff;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: radial-gradient(circle, var(--grass) 0%, #0d2b10 100%);
+            color: white;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        /* --- MÚSICA Y BOTÓN --- */
+        #music-control {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(0,0,0,0.8);
+            border: 2px solid var(--gold);
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            z-index: 1000;
+        }
+
+        h1 {
+            margin-top: 40px;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            text-shadow: 3px 3px 0px #000;
+            color: var(--gold);
+            text-align: center;
+        }
+
+        #tournament-container {
+            background: rgba(0, 0, 0, 0.85);
+            width: 90%;
+            max-width: 850px;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 0 40px rgba(0,0,0,0.7);
+            margin: 20px;
+            border: 1px solid rgba(255, 215, 0, 0.2);
+        }
+
+        .match-card {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(255,255,255,0.05);
+            margin: 15px 0;
+            padding: 20px;
+            border-radius: 15px;
+            border: 1px solid rgba(255,215,0,0.2);
+        }
+
+        .team {
+            width: 40%;
+            text-align: center;
+        }
+
+        .team img {
+            width: 130px;
+            height: 85px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: transform 0.3s;
+            border: 3px solid white;
+            object-fit: cover;
+        }
+
+        .team img:hover { transform: scale(1.1); box-shadow: 0 0 15px var(--gold); }
+
+        .vs-circle {
+            background: var(--gold);
+            color: black;
+            font-weight: bold;
+            border-radius: 50%;
+            width: 45px;
+            height: 45px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        input[type="number"] {
+            display: block;
+            margin: 10px auto;
+            width: 70px;
+            font-size: 1.6rem;
+            text-align: center;
+            border-radius: 8px;
+            border: none;
+            background: #eee;
+        }
+
+        button {
+            background: linear-gradient(to bottom, #ffd700, #b8860b);
+            color: #000;
+            padding: 15px 45px;
+            font-weight: bold;
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            font-size: 1.2rem;
+            margin-top: 20px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+        }
+
+        /* --- RANKING FINAL --- */
+        .ranking-table {
+            width: 100%;
+            margin-top: 30px;
+            border-collapse: collapse;
+            background: rgba(255,255,255,0.05);
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .ranking-table th { background: var(--gold); color: black; padding: 10px; }
+        .ranking-table td { padding: 12px; border-bottom: 1px solid rgba(255,255,255,0.1); text-align: center; }
+        .ranking-table tr:first-child td { font-weight: bold; color: var(--gold); font-size: 1.2rem; }
+
+        /* --- MODAL --- */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 2000;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background-color: rgba(0,0,0,0.9);
+            justify-content: center; align-items: center;
+        }
+        .modal-content { max-width: 85%; max-height: 85%; border: 5px solid var(--gold); border-radius: 15px; }
+        .close-modal { position: absolute; top: 30px; right: 50px; color: white; font-size: 50px; cursor: pointer; }
+    </style>
+</head>
+<body>
+
+    <audio id="stadium-bgm" loop>
+        <source src="ambient.mp3" type="audio/mpeg">
+    </audio>
+
+    <div id="music-control" onclick="toggleMusic()">🔇</div>
+
+    <h1>⚽ MUNDIAL HYSTERICOACH ⚽</h1>
+
+    <div id="tournament-container">
+        <div id="screen-content">
+            <h2 style="color:white; text-align:center;">¡Comienza la Histeria!</h2>
+            <p style="text-align:center;">8 equipos lucharán por la gloria. ¡Gritad fuerte!</p>
+            <div style="text-align:center;">
+                <button onclick="initGame()">SORTEO Y EMPEZAR</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="card-modal" class="modal" onclick="closeModal()">
+        <span class="close-modal">&times;</span>
+        <img class="modal-content" id="modal-img">
+    </div>
+
+    <script>
+        const audio = document.getElementById('stadium-bgm');
+        const musicBtn = document.getElementById('music-control');
+        let musicPlaying = false;
+
+        const allTeams = [
+            { id: 'spain', name: 'España' },
+            { id: 'france', name: 'Francia' },
+            { id: 'argentina', name: 'Argentina' },
+            { id: 'brazil', name: 'Brasil' },
+            { id: 'england', name: 'Inglaterra' },
+            { id: 'germany', name: 'Alemania' },
+            { id: 'south_africa', name: 'Sudáfrica' },
+            { id: 'japan', name: 'Japón' },
+            { id: 'netherlands', name: 'Países Bajos' },
+            { id: 'italy', name: 'Italia' }
+        ];
+
+        let bracket = [];
+        let scorers = {}; // Objeto para guardar { 'id_equipo': total_goles }
+        let currentRoundName = "Cuartos de Final";
+
+        function toggleMusic() {
+            if (musicPlaying) { audio.pause(); musicBtn.innerText = "🔇"; } 
+            else { audio.play(); musicBtn.innerText = "🔊"; }
+            musicPlaying = !musicPlaying;
+        }
+
+        function initGame() {
+            if(!musicPlaying) toggleMusic();
+            
+            // Elegir 8 equipos y resetear goleadores
+            bracket = [...allTeams].sort(() => 0.5 - Math.random()).slice(0, 8);
+            scorers = {};
+            bracket.forEach(t => scorers[t.id] = 0);
+            
+            renderBracket();
+        }
+
+        function renderBracket() {
+            const container = document.getElementById('screen-content');
+            let html = `<h2 style="color:var(--gold); text-align:center;">${currentRoundName}</h2>`;
+
+            for (let i = 0; i < bracket.length; i += 2) {
+                html += `
+                    <div class="match-card">
+                        <div class="team">
+                            <img src="images/${bracket[i].id}.jpg" onclick="openModal(this.src)">
+                            <div style="margin-top:5px">${bracket[i].name}</div>
+                            <input type="number" id="score-${i}" value="0" min="0">
+                        </div>
+                        <div class="vs-circle">VS</div>
+                        <div class="team">
+                            <img src="images/${bracket[i+1].id}.jpg" onclick="openModal(this.src)">
+                            <div style="margin-top:5px">${bracket[i+1].name}</div>
+                            <input type="number" id="score-${i+1}" value="0" min="0">
+                        </div>
+                    </div>
+                `;
+            }
+
+            html += `<div style="text-align:center;"><button onclick="processRound()">SIGUIENTE FASE ➔</button></div>`;
+            container.innerHTML = html;
+            window.scrollTo(0,0);
+        }
+
+        function processRound() {
+            let winners = [];
+            for (let i = 0; i < bracket.length; i += 2) {
+                const s1 = parseInt(document.getElementById(`score-${i}`).value) || 0;
+                const s2 = parseInt(document.getElementById(`score-${i+1}`).value) || 0;
+                
+                // Acumular goles para el ranking
+                scorers[bracket[i].id] += s1;
+                scorers[bracket[i+1].id] += s2;
+
+                winners.push(s1 >= s2 ? bracket[i] : bracket[i+1]);
+            }
+
+            bracket = winners;
+
+            if (bracket.length === 4) {
+                currentRoundName = "Semifinales";
+                renderBracket();
+            } else if (bracket.length === 2) {
+                currentRoundName = "¡LA GRAN FINAL!";
+                renderBracket();
+            } else {
+                showChampion(bracket[0]);
+            }
+        }
+
+        function showChampion(winner) {
+            const container = document.getElementById('screen-content');
+            
+            // Ordenar ranking de mayor a menor
+            const sortedRanking = Object.entries(scorers)
+                .map(([id, goals]) => {
+                    const teamInfo = allTeams.find(t => t.id === id);
+                    return { name: teamInfo.name, goals: goals };
+                })
+                .sort((a, b) => b.goals - a.goals);
+
+            let rankingHtml = `
+                <table class="ranking-table">
+                    <thead><tr><th>Pos</th><th>Equipo</th><th>Goles Totales</th></tr></thead>
+                    <tbody>
+            `;
+            sortedRanking.forEach((item, index) => {
+                rankingHtml += `<tr><td>${index + 1}º</td><td>${item.name}</td><td>${item.goals}</td></tr>`;
+            });
+            rankingHtml += `</tbody></table>`;
+
+            container.innerHTML = `
+                <div style="text-align:center; padding: 20px;">
+                    <h1 style="font-size: 3rem; margin-bottom:10px;">🏆 ¡CAMPEÓN! 🏆</h1>
+                    <img src="images/${winner.id}.jpg" style="width: 250px; border: 8px solid gold; border-radius: 15px; cursor:pointer" onclick="openModal(this.src)">
+                    <h2 style="color:var(--gold)">${winner.name.toUpperCase()}</h2>
+                    
+                    <hr style="border: 0; border-top: 1px solid rgba(255,215,0,0.3); margin: 30px 0;">
+                    
+                    <h3 style="text-transform:uppercase; letter-spacing:2px;">📊 Tabla de Goleadores</h3>
+                    ${rankingHtml}
+                    
+                    <button onclick="location.reload()" style="margin-top:30px">NUEVO TORNEO</button>
+                </div>
+            `;
+        }
+
+        function openModal(src) {
+            document.getElementById('modal-img').src = src;
+            document.getElementById('card-modal').style.display = "flex";
+        }
+
+        function closeModal() {
+            document.getElementById('card-modal').style.display = "none";
+        }
+    </script>
+</body>
+</html>
